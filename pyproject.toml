@@ -1,0 +1,39 @@
+[tool.poetry]
+name = "wordoftheday"
+version = "0.1.0"
+description = "A Python project to scrape the word of the day from the Oxford English Dictionary website, gather information about the word, and present it in a concise and readable form."
+authors = ["Tommy <your-email@example.com>"]
+readme = "README.md"
+license = "MIT"
+keywords = ["word-of-the-day", "web-scraping", "oxford-dictionary", "python"]
+packages = [{include = "wordoftheday"}]
+
+[tool.poetry.dependencies]
+python = ">=3.12"
+requests = "^2.0"
+beautifulsoup4 = "^4.0"
+ipykernel = "^6.30.1"
+jupyter = "^1.1.1"
+autoflake = "^2.3.1"
+
+[tool.poetry.group.dev.dependencies]
+black = ">=23.0.0"
+isort = ">=5.0.0"
+mypy = "^1.7.0"
+ipykernel = "^6.30.1"
+
+[tool.mypy]
+strict = true
+
+[tool.black]
+line-length = 120
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--strict-markers"
+testpaths = ["tests"]
