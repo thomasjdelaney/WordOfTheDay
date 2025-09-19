@@ -1,9 +1,9 @@
 """Module for parsing Oxford English Dictionary HTML responses."""
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Optional, cast
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 
 @dataclass
@@ -13,8 +13,8 @@ class Definition:
     sense_number: str  # e.g., "1.", "1.a.", "2.", etc.
     definition_text: str
     date_range: Optional[tuple[str, str]]  # e.g., ("1806", "")
-    examples: List[tuple[str, str, str]]  # List of (date, quote, citation)
-    subject_tags: List[str]  # e.g., ["weaponry", "historical"]
+    examples: list[tuple[str, str, str]]  # list of (date, quote, citation)
+    subject_tags: list[str]  # e.g., ["weaponry", "historical"]
 
 
 @dataclass
@@ -23,7 +23,65 @@ class WordEntry:
 
     word: str
     etymology: str
-    definitions: List[Definition]
+    definitions: list[Definition]
+
+    @staticmethod
+    def _format_etymology_section(etymology_section: Tag) -> str:
+        """Formats the etymology section for display."""
+        if etymology_section:
+            etymology_div = etymology_section.find("div", class_="etymology")
+            etymology = etymology_div.text.strip() if etymology_div else ""
+            # if the etymology ends in the string 'Show Less', remove it
+            if etymology.endswith("Show less"):
+                etymology = etymology[: -len("Show less")].strip()
+            if etymology.startswith("< "):
+                etymology = etymology[2:].strip()
+        else:
+            etymology = ""
+        return etymology
+
+    @staticmethod
+    def _get_definition_from_sense(sense: Tag) -> Optional[Definition]:
+        """Extracts a Definition object from a sense Tag. Returns None if not possible."""
+        # Get sense number
+        sense_num_div = sense.find("div", class_="item-enumerator")
+        sense_num = sense_num_div.text.strip() if sense_num_div else ""
+
+        # Get definition text
+        def_div = sense.find("div", class_="definition")
+        if not def_div:
+            return None
+        def_text = def_div.text.strip() if def_div else ""
+
+        # Get date range
+        date_div = sense.find("div", class_="daterange-container")
+        date_range = None
+        if date_div:
+            dates = date_div.text.strip().replace("–", "-").split("-")
+            date_range = (dates[0], dates[1] if len(dates) > 1 else "")
+
+        # Get examples
+        examples = []
+        quotations = sense.find_all("li", class_="quotation")
+        for quote in quotations:
+            quote = cast(Tag, quote)
+            date = cast(Tag, quote.find("div", class_="quotation-date"))
+            text = cast(Tag, quote.find("blockquote", class_="quotation-text"))
+            citation = cast(Tag, quote.find("cite", class_="citation-text"))
+            if all([date, text, citation]):
+                examples.append((date.text.strip(), text.text.strip(), citation.text.strip()))
+        # Get subject tags
+        tags_div = cast(Tag, sense.find("div", class_="tags"))
+        tags = []
+        if tags_div:
+            tags = [tag.text.strip() for tag in tags_div.find_all("a", class_="tag")]
+        return Definition(
+            sense_number=sense_num,
+            definition_text=def_text,
+            date_range=date_range,
+            examples=examples,
+            subject_tags=tags,
+        )
 
     @classmethod
     def from_html(cls, html_content: str) -> "WordEntry":
@@ -45,14 +103,12 @@ class WordEntry:
         if not word_elem:
             raise ValueError("Could not find headword")
         word = word_elem.text.strip()
+        # remove any characters in word that are not in the alphabet, hyphen, or apostrophe
+        word = "".join(c for c in word if c.isalpha() or c in ("-", "'"))
 
         # Get etymology - handle both formats
-        etymology_section = soup.find("section", id="etymology")
-        if etymology_section:
-            etymology_div = etymology_section.find("div", class_="etymology")
-            etymology = etymology_div.text.strip() if etymology_div else ""
-        else:
-            etymology = ""
+        etymology_section = cast(Tag, soup.find("section", id="etymology"))
+        etymology = cls._format_etymology_section(etymology_section=etymology_section)
 
         # Get definitions
         definitions = []
@@ -60,58 +116,15 @@ class WordEntry:
         if not meaning_section:
             raise ValueError("Could not find meanings section")
 
-        sense_items = meaning_section.find_all("li", class_=["item", "sense"])
+        sense_items = meaning_section.find_all("li", class_=["item", "sense"])  # type: ignore
 
         for sense in sense_items:
-            # Skip if this is just a container for subsenses
-            def_div = sense.find("div", class_="definition")
-            if not def_div:
-                continue
-
-            # Get sense number
-            sense_num_div = sense.find("div", class_="item-enumerator")
-            sense_num = sense_num_div.text.strip() if sense_num_div else ""
-
-            # Get definition text
-            def_text = def_div.text.strip()
-
-            # Get date range
-            date_div = sense.find("div", class_="daterange-container")
-            date_range = None
-            if date_div:
-                dates = date_div.text.strip().replace("–", "-").split("-")
-                date_range = (dates[0], dates[1] if len(dates) > 1 else "")
-
-            # Get examples
-            examples = []
-            quotations = sense.find_all("li", class_="quotation")
-            for quote in quotations:
-                date = quote.find("div", class_="quotation-date")
-                text = quote.find("blockquote", class_="quotation-text")
-                citation = quote.find("cite", class_="citation-text")
-
-                if all([date, text, citation]):
-                    examples.append((date.text.strip(), text.text.strip(), citation.text.strip()))
-
-            # Get subject tags
-            tags_div = sense.find("div", class_="tags")
-            tags = []
-            if tags_div:
-                tags = [tag.text.strip() for tag in tags_div.find_all("a", class_="tag")]
-
-            definitions.append(
-                Definition(
-                    sense_number=sense_num,
-                    definition_text=def_text,
-                    date_range=date_range,
-                    examples=examples,
-                    subject_tags=tags,
-                )
-            )
-
+            definition = cls._get_definition_from_sense(cast(Tag, sense))
+            if definition:
+                definitions.append(definition)
         return cls(word=word, etymology=etymology, definitions=definitions)
 
-    def print_summary(self):
+    def print_summary(self) -> None:
         """Print a formatted summary of the word entry."""
         print(f"Word: {self.word}")
         print("\nETYMOLOGY:")
