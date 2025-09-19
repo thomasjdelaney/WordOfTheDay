@@ -1,0 +1,75 @@
+"""Module for formatting and sending Word of the Day emails."""
+
+import logging
+import smtplib
+from dataclasses import dataclass
+from email.mime.text import MIMEText
+from typing import List
+
+from wordoftheday.word_entry import WordEntry
+
+
+@dataclass
+class EmailConfig:
+    """Configuration for email sending."""
+    smtp_server: str
+    smtp_port: int
+    sender_email: str
+    sender_password: str
+    recipient_list: List[str]
+
+
+def format_word_entry_email(word_entry: WordEntry) -> str:
+    """Format a WordEntry into a concise email body.
+    
+    Args:
+        word_entry: The WordEntry object containing word information
+        
+    Returns:
+        str: Formatted email body
+    """
+    email_body = [
+        f"Word of the Day: {word_entry.word}",
+        "",
+        "ETYMOLOGY:",
+        word_entry.etymology,
+        "",
+        "DEFINITIONS:",
+    ]
+    
+    for defn in word_entry.definitions:
+        email_body.append(f"\n{defn.sense_number} {defn.definition_text}")
+        if defn.examples:
+            date, quote, cite = defn.examples[0]  # Get first example
+            email_body.append(f"\nFirst recorded use ({date}):")
+            email_body.append(f'"{quote}"')
+            email_body.append(f"- {cite}")
+    
+    return "\n".join(email_body)
+
+
+def send_word_email(word_entry: WordEntry, config: EmailConfig) -> None:
+    """Send formatted Word of the Day email.
+    
+    Args:
+        word_entry: The WordEntry object containing word information
+        config: Email configuration settings
+        
+    Raises:
+        smtplib.SMTPException: If email sending fails
+    """
+    email_body = format_word_entry_email(word_entry)
+    
+    msg = MIMEText(email_body)
+    msg['Subject'] = f'Word of the Day: {word_entry.word}'
+    msg['From'] = config.sender_email
+    msg['To'] = ', '.join(config.recipient_list)
+    
+    try:
+        with smtplib.SMTP(config.smtp_server, config.smtp_port) as server:
+            server.starttls()
+            server.login(config.sender_email, config.sender_password)
+            server.send_message(msg)
+    except smtplib.SMTPException:
+        logging.exception("Failed to send Word of the Day email")
+        raise

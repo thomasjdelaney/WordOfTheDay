@@ -2,6 +2,27 @@
 
 A Python application that scrapes the word of the day from the Oxford English Dictionary website, gathers information about the word, and presents it in a concise and readable form.
 
+## Configuration
+
+1. Copy the environment template:
+```bash
+cp .env.template .env
+```
+
+2. Edit `.env` with your email settings:
+```env
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SENDER_EMAIL=your-email@gmail.com
+SENDER_PASSWORD=your-app-specific-password  # For Gmail, use App Password
+RECIPIENT_LIST=recipient1@example.com,recipient2@example.com
+```
+
+Note for Gmail users:
+- Enable 2-factor authentication in your Google Account
+- Generate an App Password under Security settings
+- Use the App Password in your .env file
+
 ## Features
 
 - Scrapes the Oxford English Dictionary website for the word of the day
