@@ -23,6 +23,20 @@ Note for Gmail users:
 - Generate an App Password under Security settings
 - Use the App Password in your .env file
 
+## GitHub Actions Setup
+
+To run the script automatically every day:
+
+1. Go to your repository Settings → Secrets and variables → Actions
+2. Add the following secrets:
+   - `SMTP_SERVER` (e.g., smtp.gmail.com)
+   - `SMTP_PORT` (e.g., 587)
+   - `SENDER_EMAIL` (your email address)
+   - `SENDER_PASSWORD` (your app password)
+   - `RECIPIENT_LIST` (comma-separated email addresses)
+
+The workflow will run daily at 06:00 UTC. You can adjust the schedule by modifying the cron expression in `.github/workflows/daily-word.yml`.
+
 ## Features
 
 - Scrapes the Oxford English Dictionary website for the word of the day

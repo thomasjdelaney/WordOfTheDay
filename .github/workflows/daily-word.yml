@@ -1,0 +1,37 @@
+name: Daily Word Email
+
+on:
+  schedule:
+    # Runs at 06:00 UTC every day
+    - cron: '0 5 * * *'
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  send-word-email:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        
+    - name: Install dependencies
+      run: poetry install
+        
+    - name: Create .env file
+      run: |
+        echo "SMTP_SERVER=${{ secrets.SMTP_SERVER }}" > .env
+        echo "SMTP_PORT=${{ secrets.SMTP_PORT }}" >> .env
+        echo "SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}" >> .env
+        echo "SENDER_PASSWORD=${{ secrets.SENDER_PASSWORD }}" >> .env
+        echo "RECIPIENT_LIST=${{ secrets.RECIPIENT_LIST }}" >> .env
+        
+    - name: Run word of the day script
+      run: ./run_word_of_the_day.sh
