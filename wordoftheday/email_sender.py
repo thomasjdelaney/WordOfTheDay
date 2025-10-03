@@ -41,10 +41,11 @@ def format_word_entry_email(word_entry: WordEntry) -> str:
     for defn in word_entry.definitions:
         email_body.append(f"\n{defn.sense_number} {defn.definition_text}")
         if defn.examples:
-            date, quote, cite = defn.examples[0]  # Get first example
-            email_body.append(f"\nFirst recorded use ({date}):")
-            email_body.append(f'"{quote}"')
-            email_body.append(f"- {cite}")
+            email_body.append("\nExamples:")
+            for date, quote, cite in defn.examples:
+                email_body.append(f"({date}):")
+                email_body.append(f'"{quote}"')
+                email_body.append(f"- {cite}\n")
 
     return "\n".join(email_body)
 

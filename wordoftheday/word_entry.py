@@ -27,18 +27,38 @@ class WordEntry:
 
     @staticmethod
     def _format_etymology_section(etymology_section: Tag) -> str:
-        """Formats the etymology section for display."""
-        if etymology_section:
-            etymology_div = etymology_section.find("div", class_="etymology")
-            etymology = etymology_div.text.strip() if etymology_div else ""
-            # if the etymology ends in the string 'Show Less', remove it
-            if etymology.endswith("Show less"):
-                etymology = etymology[: -len("Show less")].strip()
-            if etymology.startswith("< "):
-                etymology = etymology[2:].strip()
-        else:
-            etymology = ""
-        return etymology
+        """Formats the etymology section for display.
+
+        Preserves paragraph breaks in the etymology text while cleaning up the formatting.
+
+        Args:
+            etymology_section: The HTML section containing etymology information
+
+        Returns:
+            str: Formatted etymology text with preserved line breaks
+        """
+        if not etymology_section:
+            return ""
+
+        etymology_div = cast(Tag, etymology_section.find("div", class_="etymology"))
+        if not etymology_div:
+            return ""
+
+        # Replace <p></p> tags with newlines
+        for p in etymology_div.find_all("p"):
+            p.replace_with("\n" + p.text + "\n")
+
+        etymology = etymology_div.text.strip()
+
+        # Clean up the text
+        if etymology.endswith("Show less"):
+            etymology = etymology[: -len("Show less")].strip()
+        if etymology.startswith("< "):
+            etymology = etymology[2:].strip()
+
+        # Replace multiple newlines with single newlines and strip whitespace
+        lines = [line.strip() for line in etymology.split("\n") if line.strip()]
+        return "\n".join(lines)
 
     @staticmethod
     def _get_definition_from_sense(sense: Tag) -> Optional[Definition]:
@@ -141,7 +161,7 @@ class WordEntry:
                 print("Tags:", ", ".join(defn.subject_tags))
 
             if defn.examples:
-                print("First recorded use:")
-                date, quote, cite = defn.examples[0]
-                print(f"  {date}: {quote}")
-                print(f"  - {cite}")
+                print("Examples:")
+                for date, quote, cite in defn.examples:
+                    print(f"  {date}: {quote}")
+                    print(f"  - {cite}")
