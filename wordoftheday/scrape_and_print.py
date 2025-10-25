@@ -5,6 +5,7 @@ import os
 
 from wordoftheday import PROJECT_ROOT
 from wordoftheday.email_sender import EmailConfig, send_word_email
+from wordoftheday.etymology_entry import EtymologyEntry
 from wordoftheday.scraping_functions import fetch_url, get_word_of_the_day_url
 from wordoftheday.word_entry import WordEntry
 
@@ -27,6 +28,9 @@ def main() -> None:
             logging.error("No word of the day URL found.")
             return
 
+        etymology_url = f"{wotd_url}?tab=etymology"
+        etymology_html = fetch_url(url=etymology_url)
+        etymology_entry = EtymologyEntry.from_html(etymology_html)
         wotd_html = fetch_url(url=wotd_url)
         word_entry = WordEntry.from_html(wotd_html)
         word_entry.print_summary()
@@ -38,7 +42,7 @@ def main() -> None:
             file.write(wotd_html)
 
         # Send email
-        send_word_email(word_entry, email_config)
+        send_word_email(word_entry=word_entry, etymology_entry=etymology_entry, config=email_config)
         logging.info(f"Successfully sent Word of the Day email for: {word_entry.word}")
 
     except Exception:

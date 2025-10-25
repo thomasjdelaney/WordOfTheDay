@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from email.mime.text import MIMEText
 from typing import List
 
+from wordoftheday.etymology_entry import EtymologyEntry
 from wordoftheday.word_entry import WordEntry
 
 
@@ -20,20 +21,18 @@ class EmailConfig:
     recipient_list: List[str]
 
 
-def format_word_entry_email(word_entry: WordEntry) -> str:
+def format_word_entry_email(word_entry: WordEntry, etymology_entry: EtymologyEntry) -> str:
     """Format a WordEntry into a concise email body.
 
     Args:
         word_entry: The WordEntry object containing word information
+        etymology_entry: The EtymologyEntry object containing etymology information
 
     Returns:
         str: Formatted email body
     """
     email_body = [
         f"Word of the Day: {word_entry.word}",
-        "",
-        "ETYMOLOGY:",
-        word_entry.etymology,
         "",
         "DEFINITIONS:",
     ]
@@ -47,20 +46,22 @@ def format_word_entry_email(word_entry: WordEntry) -> str:
                 email_body.append(f'"{quote}"')
                 email_body.append(f"- {cite}\n")
 
+    email_body.append(etymology_entry.format_for_email())
     return "\n".join(email_body)
 
 
-def send_word_email(word_entry: WordEntry, config: EmailConfig) -> None:
+def send_word_email(word_entry: WordEntry, etymology_entry: EtymologyEntry, config: EmailConfig) -> None:
     """Send formatted Word of the Day email.
 
     Args:
         word_entry: The WordEntry object containing word information
+        etymology_entry: The EtymologyEntry object containing etymology information
         config: Email configuration settings
 
     Raises:
         smtplib.SMTPException: If email sending fails
     """
-    email_body = format_word_entry_email(word_entry)
+    email_body = format_word_entry_email(word_entry=word_entry, etymology_entry=etymology_entry)
 
     msg = MIMEText(email_body)
     msg["Subject"] = f"Word of the Day: {word_entry.word}"

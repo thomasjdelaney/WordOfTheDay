@@ -10,7 +10,22 @@ from wordoftheday.email_sender import (
     format_word_entry_email,
     send_word_email,
 )
+from wordoftheday.etymology_entry import EtymologyEntry
 from wordoftheday.word_entry import Definition, WordEntry
+
+
+@pytest.fixture
+def sample_etymology_entry() -> EtymologyEntry:
+    """Create a sample EtymologyEntry for testing.
+
+    Returns:
+        EtymologyEntry: A sample etymology entry
+    """
+    return EtymologyEntry(
+        etymology_summary="A borrowing from Latin",
+        etymons=[("Latin", "testum")],
+        full_etymology="From Latin testum (earthen vessel, pot, sherd)"
+    )
 
 
 @pytest.fixture
@@ -51,32 +66,45 @@ def email_config() -> EmailConfig:
     )
 
 
-def test_format_word_entry_email(sample_word_entry: WordEntry) -> None:
+def test_format_word_entry_email(sample_word_entry: WordEntry, sample_etymology_entry: EtymologyEntry) -> None:
     """Test email formatting.
 
     Args:
         sample_word_entry: Fixture providing a sample WordEntry
+        sample_etymology_entry: Fixture providing a sample EtymologyEntry
     """
-    email_body = format_word_entry_email(sample_word_entry)
+    email_body = format_word_entry_email(word_entry=sample_word_entry, etymology_entry=sample_etymology_entry)
 
     assert "Word of the Day: test" in email_body
-    assert "From Latin testum" in email_body
+    assert "ETYMOLOGY SUMMARY" in email_body
+    assert "A borrowing from Latin" in email_body
     assert "1. A sample definition" in email_body
-    assert "First recorded use (1500):" in email_body
     assert '"A test quote"' in email_body
     assert "- Test Author" in email_body
+    assert "FULL ETYMOLOGY" in email_body
+    assert "From Latin testum" in email_body
 
 
 @patch("smtplib.SMTP")
-def test_send_word_email(mock_smtp: Mock, sample_word_entry: WordEntry, email_config: EmailConfig) -> None:
+def test_send_word_email(
+    mock_smtp: Mock, 
+    sample_word_entry: WordEntry, 
+    sample_etymology_entry: EtymologyEntry,
+    email_config: EmailConfig
+) -> None:
     """Test email sending functionality.
 
     Args:
         mock_smtp: Mock SMTP server
         sample_word_entry: Fixture providing a sample WordEntry
+        sample_etymology_entry: Fixture providing a sample EtymologyEntry
         email_config: Fixture providing email configuration
     """
-    send_word_email(sample_word_entry, email_config)
+    send_word_email(
+        word_entry=sample_word_entry,
+        etymology_entry=sample_etymology_entry,
+        config=email_config
+    )
 
     mock_smtp.assert_called_once_with(email_config.smtp_server, email_config.smtp_port)
     mock_smtp_instance = mock_smtp.return_value.__enter__.return_value
@@ -88,16 +116,24 @@ def test_send_word_email(mock_smtp: Mock, sample_word_entry: WordEntry, email_co
 
 @patch("smtplib.SMTP")
 def test_send_word_email_handles_error(
-    mock_smtp: Mock, sample_word_entry: WordEntry, email_config: EmailConfig
+    mock_smtp: Mock, 
+    sample_word_entry: WordEntry, 
+    sample_etymology_entry: EtymologyEntry,
+    email_config: EmailConfig
 ) -> None:
     """Test email sending error handling.
 
     Args:
         mock_smtp: Mock SMTP server
         sample_word_entry: Fixture providing a sample WordEntry
+        sample_etymology_entry: Fixture providing a sample EtymologyEntry
         email_config: Fixture providing email configuration
     """
     mock_smtp.return_value.__enter__.return_value.send_message.side_effect = smtplib.SMTPException
 
     with pytest.raises(smtplib.SMTPException):
-        send_word_email(sample_word_entry, email_config)
+        send_word_email(
+            word_entry=sample_word_entry,
+            etymology_entry=sample_etymology_entry,
+            config=email_config
+        )
