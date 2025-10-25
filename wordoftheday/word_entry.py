@@ -22,43 +22,8 @@ class WordEntry:
     """Represents a complete dictionary entry for a word."""
 
     word: str
-    etymology: str
     definitions: list[Definition]
-
-    @staticmethod
-    def _format_etymology_section(etymology_section: Tag) -> str:
-        """Formats the etymology section for display.
-
-        Preserves paragraph breaks in the etymology text while cleaning up the formatting.
-
-        Args:
-            etymology_section: The HTML section containing etymology information
-
-        Returns:
-            str: Formatted etymology text with preserved line breaks
-        """
-        if not etymology_section:
-            return ""
-
-        etymology_div = cast(Tag, etymology_section.find("div", class_="etymology"))
-        if not etymology_div:
-            return ""
-
-        # Replace <p></p> tags with newlines
-        for p in etymology_div.find_all("p"):
-            p.replace_with("\n" + p.text + "\n")
-
-        etymology = etymology_div.text.strip()
-
-        # Clean up the text
-        if etymology.endswith("Show less"):
-            etymology = etymology[: -len("Show less")].strip()
-        if etymology.startswith("< "):
-            etymology = etymology[2:].strip()
-
-        # Replace multiple newlines with single newlines and strip whitespace
-        lines = [line.strip() for line in etymology.split("\n") if line.strip()]
-        return "\n".join(lines)
+    etymology: str = ""  # Etymology is optional
 
     @staticmethod
     def _get_definition_from_sense(sense: Tag) -> Optional[Definition]:
@@ -126,29 +91,50 @@ class WordEntry:
         # remove any characters in word that are not in the alphabet, hyphen, or apostrophe
         word = "".join(c for c in word if c.isalpha() or c in ("-", "'"))
 
-        # Get etymology - handle both formats
-        etymology_section = cast(Tag, soup.find("section", id="etymology"))
-        etymology = cls._format_etymology_section(etymology_section=etymology_section)
-
         # Get definitions
         definitions = []
-        meaning_section = soup.find("section", id="meaning_and_use")
+        meaning_section = cast(Tag, soup.find("section", id="meaning_and_use"))
         if not meaning_section:
             raise ValueError("Could not find meanings section")
 
-        sense_items = meaning_section.find_all("li", class_=["item", "sense"])  # type: ignore
+        # Find all unique sense elements containing definitions
+        definition_map: dict[str, Tag] = {}
 
-        for sense in sense_items:
+        def process_element(element: Tag) -> None:
+            """Recursively process elements to find sense items with definitions."""
+            # Skip if not a Tag
+            if not isinstance(element, Tag):
+                return
+
+            # If this is a sense element with a definition, record it
+            class_attr = element.get("class")
+            if class_attr:
+                classes = [str(c) for c in class_attr]
+                if "sense" in classes:
+                    def_div = element.find("div", class_="definition")
+                    if def_div:
+                        def_text = def_div.text.strip()
+                        if def_text not in definition_map:
+                            definition_map[def_text] = element
+
+            # Recursively process children
+            for child in element.children:
+                if isinstance(child, Tag):
+                    process_element(child)
+
+        # Start processing from meaning_section
+        process_element(meaning_section)
+
+        # Use definitions in a consistent order
+        for sense in [definition_map[text] for text in sorted(definition_map.keys())]:
             definition = cls._get_definition_from_sense(cast(Tag, sense))
             if definition:
                 definitions.append(definition)
-        return cls(word=word, etymology=etymology, definitions=definitions)
+        return cls(word=word, definitions=definitions)
 
     def print_summary(self) -> None:
         """Print a formatted summary of the word entry."""
         print(f"Word: {self.word}")
-        print("\nETYMOLOGY:")
-        print(self.etymology)
         print("\nDEFINITIONS:")
 
         for defn in self.definitions:

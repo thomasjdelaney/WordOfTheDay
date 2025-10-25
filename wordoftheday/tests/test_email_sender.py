@@ -24,7 +24,7 @@ def sample_etymology_entry() -> EtymologyEntry:
     return EtymologyEntry(
         etymology_summary="A borrowing from Latin",
         etymons=[("Latin", "testum")],
-        full_etymology="From Latin testum (earthen vessel, pot, sherd)"
+        full_etymology="From Latin testum (earthen vessel, pot, sherd)",
     )
 
 
@@ -37,7 +37,6 @@ def sample_word_entry() -> WordEntry:
     """
     return WordEntry(
         word="test",
-        etymology="From Latin testum",
         definitions=[
             Definition(
                 sense_number="1.",
@@ -87,10 +86,7 @@ def test_format_word_entry_email(sample_word_entry: WordEntry, sample_etymology_
 
 @patch("smtplib.SMTP")
 def test_send_word_email(
-    mock_smtp: Mock, 
-    sample_word_entry: WordEntry, 
-    sample_etymology_entry: EtymologyEntry,
-    email_config: EmailConfig
+    mock_smtp: Mock, sample_word_entry: WordEntry, sample_etymology_entry: EtymologyEntry, email_config: EmailConfig
 ) -> None:
     """Test email sending functionality.
 
@@ -100,11 +96,7 @@ def test_send_word_email(
         sample_etymology_entry: Fixture providing a sample EtymologyEntry
         email_config: Fixture providing email configuration
     """
-    send_word_email(
-        word_entry=sample_word_entry,
-        etymology_entry=sample_etymology_entry,
-        config=email_config
-    )
+    send_word_email(word_entry=sample_word_entry, etymology_entry=sample_etymology_entry, config=email_config)
 
     mock_smtp.assert_called_once_with(email_config.smtp_server, email_config.smtp_port)
     mock_smtp_instance = mock_smtp.return_value.__enter__.return_value
@@ -116,10 +108,7 @@ def test_send_word_email(
 
 @patch("smtplib.SMTP")
 def test_send_word_email_handles_error(
-    mock_smtp: Mock, 
-    sample_word_entry: WordEntry, 
-    sample_etymology_entry: EtymologyEntry,
-    email_config: EmailConfig
+    mock_smtp: Mock, sample_word_entry: WordEntry, sample_etymology_entry: EtymologyEntry, email_config: EmailConfig
 ) -> None:
     """Test email sending error handling.
 
@@ -132,8 +121,4 @@ def test_send_word_email_handles_error(
     mock_smtp.return_value.__enter__.return_value.send_message.side_effect = smtplib.SMTPException
 
     with pytest.raises(smtplib.SMTPException):
-        send_word_email(
-            word_entry=sample_word_entry,
-            etymology_entry=sample_etymology_entry,
-            config=email_config
-        )
+        send_word_email(word_entry=sample_word_entry, etymology_entry=sample_etymology_entry, config=email_config)

@@ -30,9 +30,9 @@ def main() -> None:
 
         etymology_url = f"{wotd_url}?tab=etymology"
         etymology_html = fetch_url(url=etymology_url)
-        etymology_entry = EtymologyEntry.from_html(etymology_html)
+        etymology_entry = EtymologyEntry.from_html(html_content=etymology_html)
         wotd_html = fetch_url(url=wotd_url)
-        word_entry = WordEntry.from_html(wotd_html)
+        word_entry = WordEntry.from_html(html_content=wotd_html)
         word_entry.print_summary()
 
         # Save HTML response

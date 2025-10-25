@@ -111,7 +111,7 @@ class EtymologyEntry:
         Returns:
             str: Formatted etymology text for email
         """
-        email_str = f"ETYMOLOGY SUMMARY:\n{self.etymology_summary}"
+        email_str = f"ETYMOLOGY SUMMARY:\n{self.etymology_summary}\n"
         if self.etymons:
             email_str += "ETYMONS:\n"
             for language, word_form in self.etymons:

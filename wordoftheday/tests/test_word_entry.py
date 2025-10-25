@@ -22,20 +22,30 @@ def sample_html() -> str:
                 <div class="etymology">From Henry Shrapnel (1761-1842)</div>
             </section>
             <section id="meaning_and_use">
-                <li class="item sense">
-                    <div class="item-enumerator">1.</div>
-                    <div class="definition">A type of artillery shell</div>
-                    <div class="daterange-container">1806-</div>
-                    <div class="tags">
-                        <a class="tag">military</a>
-                        <a class="tag">historical</a>
+                <div class="tab-content">
+                    <div class="tab-content-body">
+                        <div id="meanings">
+                            <ol class="s4-list">
+                                <li class="item sense">
+                                    <div class="item-enumerator">1.</div>
+                                    <div class="definition">A type of artillery shell</div>
+                                    <div class="daterange-container">1806-</div>
+                                    <div class="tags">
+                                        <a class="tag">military</a>
+                                        <a class="tag">historical</a>
+                                    </div>
+                                    <ol class="quotation-container">
+                                        <li class="quotation">
+                                            <div class="quotation-date">1806</div>
+                                            <blockquote class="quotation-text">The shells burst with great effect.</blockquote>
+                                            <cite class="citation-text">Military Journal</cite>
+                                        </li>
+                                    </ol>
+                                </li>
+                            </ol>
+                        </div>
                     </div>
-                    <li class="quotation">
-                        <div class="quotation-date">1806</div>
-                        <blockquote class="quotation-text">The shells burst with great effect.</blockquote>
-                        <cite class="citation-text">Military Journal</cite>
-                    </li>
-                </li>
+                </div>
             </section>
         </body>
     </html>
@@ -51,7 +61,6 @@ def test_word_entry_creation(sample_html: str) -> None:
     entry = WordEntry.from_html(sample_html)
 
     assert entry.word == "shrapnel"
-    assert entry.etymology == "From Henry Shrapnel (1761-1842)"
     assert len(entry.definitions) == 1
 
     definition = entry.definitions[0]
@@ -70,21 +79,28 @@ def test_word_entry_creation(sample_html: str) -> None:
 def test_word_entry_missing_sections() -> None:
     """Test handling of HTML with missing sections."""
     minimal_html = """
-    <html>
-        <h1 class="headword-group">
-            <span class="headword">test</span>
-        </h1>
-        <section id="meaning_and_use">
-            <li class="item sense">
-                <div class="definition">A simple test</div>
-            </li>
-        </section>
-    </html>
-    """
+        <html>
+            <h1 class="headword-group">
+                <span class="headword">test</span>
+            </h1>
+            <section id="meaning_and_use">
+                <div class="tab-content">
+                    <div class="tab-content-body">
+                        <div id="meanings">
+                            <ol class="s4-list">
+                                <li class="item sense">
+                                    <div class="definition">A simple test</div>
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </html>
+        """
 
     entry = WordEntry.from_html(minimal_html)
     assert entry.word == "test"
-    assert entry.etymology == ""
     assert len(entry.definitions) == 1
     assert entry.definitions[0].definition_text == "A simple test"
 
@@ -98,18 +114,26 @@ def test_word_entry_invalid_html() -> None:
 def test_definition_without_examples() -> None:
     """Test handling definition without examples."""
     html = """
-    <html>
-        <h1 class="headword-group">
-            <span class="headword">test</span>
-        </h1>
-        <section id="meaning_and_use">
-            <li class="item sense">
-                <div class="item-enumerator">1.</div>
-                <div class="definition">A definition without examples</div>
-            </li>
-        </section>
-    </html>
-    """
+        <html>
+            <h1 class="headword-group">
+                <span class="headword">test</span>
+            </h1>
+            <section id="meaning_and_use">
+                <div class="tab-content">
+                    <div class="tab-content-body">
+                        <div id="meanings">
+                            <ol class="s4-list">
+                                <li class="item sense">
+                                    <div class="item-enumerator">1.</div>
+                                    <div class="definition">A definition without examples</div>
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </html>
+        """
 
     entry = WordEntry.from_html(html)
     assert len(entry.definitions) == 1
